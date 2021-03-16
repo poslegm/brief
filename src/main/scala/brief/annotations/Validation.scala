@@ -1,6 +1,6 @@
-package metaval.annotations
+package brief.annotations
 
-import metaval.ValidationMacros
+import brief.ValidationMacros
 
 import scala.language.experimental.macros
 

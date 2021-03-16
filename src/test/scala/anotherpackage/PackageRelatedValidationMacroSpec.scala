@@ -1,7 +1,7 @@
 package anotherpackage
 
 import cats.data.Validated
-import metaval.annotations.Validation
+import brief.annotations.Validation
 
 import eu.timepit.refined._
 import eu.timepit.refined.api.Refined

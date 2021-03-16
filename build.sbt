@@ -19,7 +19,7 @@ inThisBuild(
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "macro-validated",
+    name := "brief",
     libraryDependencies ++= Seq(cats, refined, munit, circeDerivation),
     testFrameworks += new TestFramework("munit.Framework"),
     scalaVersion := "2.13.5",

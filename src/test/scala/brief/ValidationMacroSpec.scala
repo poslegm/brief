@@ -1,4 +1,4 @@
-package metaval
+package brief
 
 import annotations.Validation
 import cats.data.{Validated, NonEmptyChain}

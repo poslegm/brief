@@ -1,9 +1,9 @@
-package metaval
+package brief
 
 import cats.data.NonEmptyList
 import scala.reflect.macros.whitebox
 
-private[metaval] final class ValidationMacros(val c: whitebox.Context) {
+private[brief] final class ValidationMacros(val c: whitebox.Context) {
   import c.universe._
 
   final def apply(annottees: c.Tree*): c.Tree = macroApply(annottees)()

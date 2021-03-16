@@ -1,4 +1,4 @@
-# metaval
+# brief
 
 Automated smart constructor generation.
 
