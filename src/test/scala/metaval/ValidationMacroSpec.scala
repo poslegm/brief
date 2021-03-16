@@ -25,6 +25,13 @@ class ValidationMacroSpec extends munit.FunSuite {
     assertEquals(Test.create(), Validated.valid(Test()))
   }
 
+  test("generate object for class with aliased fields") {
+    type Alias = String
+    @Validation
+    case class Test(a: Int, b: Alias)
+    assertEquals(Test.create(1, "a"), Validated.valid(Test(1, "a")))
+  }
+
   test("generate object for class with another macro annotation") {
     import io.circe.derivation.annotations.JsonCodec
     import io.circe.syntax._

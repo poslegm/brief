@@ -51,9 +51,7 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
     private[this] def create(clsDef: ClassDef): Tree = {
       val name        = clsDef.name
       val fields      = extractCaseClassFields(clsDef)
-      val arguments   = fields.map { x =>
-        q"${x.name}: ${originalFieldType(x)}"
-      }
+      val arguments   = fields.map(fieldWithoriginalType)
       val constructor =
         q"""
           new $name(
@@ -80,18 +78,12 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
         case field: ValDef if field.mods.hasFlag(Flag.CASEACCESSOR | Flag.PARAMACCESSOR) => field
       }
 
-    /** case class Example(a: String, b: Int Refined Positive)
-      * will return String for a and Int for b
-      */
-    private[this] def originalFieldType(field: ValDef): TypeName =
+    private[this] def fieldWithoriginalType(field: ValDef): Tree =
       field.tpt match {
-        case AppliedTypeTree(Ident(TypeName("Refined")), Ident(original: TypeName) :: _) => original
-        case Ident(original: TypeName) /* non-refined field */                           => original
+        case AppliedTypeTree(Ident(TypeName("Refined")), Ident(original: TypeName) :: _) =>
+          q"${field.name}: ${original}"
 
-        case _ =>
-          abort(
-            "Unsupported field type in MacroApply.originalFieldType; it's a bug in @Validation macros"
-          )
+        case other => q"${field.name}: $other"
       }
 
     private[this] case class RefinedFieldValidator(validator: Tree, field: ValDef)
