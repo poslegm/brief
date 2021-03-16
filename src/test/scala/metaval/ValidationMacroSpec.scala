@@ -1,29 +1,28 @@
 package metaval
 
 import annotations.Validation
+import cats.data.{Validated, NonEmptyChain}
 
 class ValidationMacroSpec extends munit.FunSuite {
   test("generate object") {
     @Validation
     case class Test(a: Int)
-    assertEquals(Test.ok, "boomer")
-    assertEquals(Test.create(1), Test(1))
+    assertEquals(Test.create(1), Validated.valid(Test(1)))
   }
 
   test("generate object for final case class") {
     @Validation
     final case class Test()
-    assertEquals(Test.ok, "boomer")
-    assertEquals(Test.create(), Test())
+    assertEquals(Test.create(), Validated.valid(Test()))
   }
 
   test("generate object for class with companion") {
     @Validation
     case class Test()
     object Test {
-      def neok = "zoomer"
+      def wow = "such function"
     }
-    assertEquals(Test.ok, "boomer")
+    assertEquals(Test.create(), Validated.valid(Test()))
   }
 
   test("generate object for class with another macro annotation") {
@@ -32,7 +31,7 @@ class ValidationMacroSpec extends munit.FunSuite {
 
     @Validation @JsonCodec
     case class Test(a: Int)
-    assertEquals(Test.ok, "boomer")
+    assertEquals(Test.create(1), Validated.valid(Test(1)))
     assertEquals(Test(1).asJson.noSpaces, """{"a":1}""")
   }
 
@@ -74,7 +73,10 @@ class ValidationMacroSpec extends munit.FunSuite {
 
     @Validation
     case class Test(a: Int, ref: Int Refined Positive)
-    assertEquals(Test.ok, "boomer")
-    assertEquals(Test.create(1, 2), Test(1, 2))
+    assertEquals(Test.create(1, 2), Validated.valid(Test(1, 2)))
+    assertEquals(
+      Test.create(1, -2),
+      Validated.invalidNec[String, Test]("Predicate failed: (-2 > 0).")
+    )
   }
 }
