@@ -23,5 +23,5 @@ lazy val root = project
     libraryDependencies ++= Seq(cats, refined, munit, circeDerivation),
     testFrameworks += new TestFramework("munit.Framework"),
     scalaVersion := "2.13.5",
-    scalacOptions ++= Seq("-Ymacro-annotations")
+    scalacOptions ++= Seq("-Ymacro-annotations", "-Ymacro-debug-lite")
   )

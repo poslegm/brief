@@ -75,5 +75,6 @@ class ValidationMacroSpec extends munit.FunSuite {
     @Validation
     case class Test(a: Int, ref: Int Refined Positive)
     assertEquals(Test.ok, "boomer")
+    assertEquals(Test.create(1, 2), Test(1, 2))
   }
 }

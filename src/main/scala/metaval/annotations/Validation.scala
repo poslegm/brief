@@ -11,9 +11,11 @@ class Validation() extends scala.annotation.StaticAnnotation {
 // TODO check is it case class - DONE
 // TODO check if companion object exists already - DONE
 // TODO check if there is another macro annotations - DONE
-// TODO find refined fields and original type of its fields
+// TODO find refined fields, original and targiet types of its fields `eu.timepit.refined.refineV[RRR](value)`
 // TODO take NonEmptyChain[String] => E in constructor
 // TODO generic fields
+// TODO test usage in another package
+// TODO multiple predicates: String Refined IPv4 Or IPv6
 private[annotations] final class ValidationMacros(val c: whitebox.Context) {
   import c.universe._
 
@@ -37,6 +39,7 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
               def ok: String = "boomer"
             }
           """
+
         case List(
               clsDef: ClassDef,
               q"object $objName extends { ..$objEarlyDefs } with ..$objParents { $objSelf => ..$objDefs }"
@@ -49,21 +52,63 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
               def ok: String = "boomer"
             }
           """
-        case _                                             =>
+
+        case _ =>
           abort(s"@Validation macro can only be applied to case classes")
       }
 
     private[this] def create(clsDef: ClassDef): Tree = {
-      val (name, fields) = extractCaseClassFields(clsDef)
+      val name         = clsDef.name
+      val fields       = extractCaseClassFields(clsDef)
+      val arguments    = fields.map { x =>
+        q"${x.name}: ${originalFieldType(x)}"
+      }
+      val applications = fields.map(fieldToConstructorArgument)
       q"""
-        def create(..$fields): $name = new $name(..${fields.map(_.name)})
+        def create(
+          ..$arguments
+        ): $name =
+          new $name(
+            ..${applications}
+          )
       """
     }
 
-    private[this] def extractCaseClassFields(clsDef: ClassDef): (TypeName, List[ValDef]) =
-      clsDef match {
-        case q"..$mods class $className(..$fields) extends ..$parents { ..$body }" =>
-          className -> fields
+    private[this] def extractCaseClassFields(clsDef: ClassDef): List[ValDef] =
+      clsDef.impl.body.collect {
+        case field: ValDef if field.mods.hasFlag(Flag.CASEACCESSOR | Flag.PARAMACCESSOR) => field
       }
+
+    /** case class Example(a: String, b: Int Refined Positive)
+      * will return String for a and Int for b
+      */
+    private[this] def originalFieldType(field: ValDef): TypeName =
+      field.tpt match {
+        case AppliedTypeTree(Ident(TypeName("Refined")), Ident(original: TypeName) :: _) => original
+        case Ident(original: TypeName) /* non-refined field */                           => original
+
+        case _ =>
+          abort(
+            "Unsupported field type in MacroApply.originalFieldType; it's a bug in @Validation macros"
+          )
+      }
+
+    private[this] def fieldToConstructorArgument(field: ValDef): Tree =
+      field.tpt match {
+        case AppliedTypeTree(
+              Ident(TypeName("Refined")),
+              Ident(_) :: Ident(predicate: TypeName) :: Nil
+            ) =>
+          q"_root_.eu.timepit.refined.refineV[${predicate}](${field.name}).fold(_root_.scala.sys.error, identity)"
+
+        case Ident(_) /* non-refined field */ =>
+          q"${field.name}"
+
+        case _ =>
+          abort(
+            "Unsupported field type in MacroApply.fieldToConstructorArgument; it's a bug in @Validation macros"
+          )
+      }
+
   }
 }
