@@ -9,14 +9,6 @@ class Validation() extends scala.annotation.StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro ValidationMacros.apply
 }
 
-// TODO check is it case class - DONE
-// TODO check if companion object exists already - DONE
-// TODO check if there is another macro annotations - DONE
-// TODO find refined fields, original and targiet types of its fields `eu.timepit.refined.refineV[RRR](value)` - DONE
-// TODO take NonEmptyChain[String] => E in constructor
-// TODO generic fields
-// TODO test usage in another package
-// TODO multiple predicates: String Refined IPv4 Or IPv6
 private[annotations] final class ValidationMacros(val c: whitebox.Context) {
   import c.universe._
 
