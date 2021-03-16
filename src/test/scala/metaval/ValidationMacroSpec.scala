@@ -5,8 +5,16 @@ import annotations.Validation
 class ValidationMacroSpec extends munit.FunSuite {
   test("generate object") {
     @Validation
-    case class Test()
+    case class Test(a: Int)
     assertEquals(Test.ok, "boomer")
+    assertEquals(Test.create(1), Test(1))
+  }
+
+  test("generate object for final case class") {
+    @Validation
+    final case class Test()
+    assertEquals(Test.ok, "boomer")
+    assertEquals(Test.create(), Test())
   }
 
   test("generate object for class with companion") {
@@ -56,5 +64,16 @@ class ValidationMacroSpec extends munit.FunSuite {
          | ^
          |""".stripMargin
     )
+  }
+
+  test("validate refined fields") {
+    import eu.timepit.refined._
+    import eu.timepit.refined.api.Refined
+    import eu.timepit.refined.auto._
+    import eu.timepit.refined.numeric._
+
+    @Validation
+    case class Test(a: Int, ref: Int Refined Positive)
+    assertEquals(Test.ok, "boomer")
   }
 }

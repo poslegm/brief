@@ -12,7 +12,8 @@ class Validation() extends scala.annotation.StaticAnnotation {
 // TODO check if companion object exists already - DONE
 // TODO check if there is another macro annotations - DONE
 // TODO find refined fields and original type of its fields
-// TODO take String => E in constructor
+// TODO take NonEmptyChain[String] => E in constructor
+// TODO generic fields
 private[annotations] final class ValidationMacros(val c: whitebox.Context) {
   import c.universe._
 
@@ -20,7 +21,7 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
 
   final def macroApply(annottees: Seq[c.Tree]): MacroApply = new MacroApply(annottees)
 
-  protected def abort(msg: String): Nothing =
+  private[this] def abort(msg: String): Nothing =
     c.abort(c.enclosingPosition, s"@Validation macro failure - $msg")
 
   private[this] def isCaseClass(clsDef: ClassDef): Boolean = clsDef.mods.hasFlag(Flag.CASE)
@@ -32,6 +33,7 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
           q"""
             $clsDef
             object ${clsDef.name.toTermName} {
+              ..${create(clsDef)}
               def ok: String = "boomer"
             }
           """
@@ -43,6 +45,7 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
             $clsDef
             object $objName extends { ..$objEarlyDefs } with ..$objParents { $objSelf =>
               ..$objDefs
+              ..${create(clsDef)}
               def ok: String = "boomer"
             }
           """
@@ -50,5 +53,17 @@ private[annotations] final class ValidationMacros(val c: whitebox.Context) {
           abort(s"@Validation macro can only be applied to case classes")
       }
 
+    private[this] def create(clsDef: ClassDef): Tree = {
+      val (name, fields) = extractCaseClassFields(clsDef)
+      q"""
+        def create(..$fields): $name = new $name(..${fields.map(_.name)})
+      """
+    }
+
+    private[this] def extractCaseClassFields(clsDef: ClassDef): (TypeName, List[ValDef]) =
+      clsDef match {
+        case q"..$mods class $className(..$fields) extends ..$parents { ..$body }" =>
+          className -> fields
+      }
   }
 }
