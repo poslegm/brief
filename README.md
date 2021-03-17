@@ -1,5 +1,7 @@
 # brief
 
+Validation things are useless until someone uses them. Tools should work as simple as possible for mass usage.
+
 **Proof of concept**
 
 Automated constructor generation for case classes with refined fields.
@@ -13,7 +15,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
 
-// without macro
+// write a lot of boilerplate without macro
 
 case class Test(a: Int, b: Int Refined Positive, c: Int Refined Negative)
 object Test {
@@ -26,20 +28,10 @@ object Test {
     }
 }
 
-// with macro
+// just one annotation with macro
 
 @Validation
 case class Test(a: Int, b: Int Refined Positive, c: Int Refined Negative)
 Test.create(1, 2, -3) // Validated.Valid(Test(1, 2, -3))
 Test.create(1, -2, 3) // Validated.Invalid(NonEmptyChain("Predicate failed: (-2 > 0).", "Predicate failed: (3 < 0)."))
 ```
-
-## Next steps
-
--   Get rid of `cats.data.Validated`
--   Add field name to error
--   Support case classes with generic fields
--   Receive `NonEmptyChain[String] => E` in annotation for custom exceptions
--   Cross build for Scala 2.11 and 2.12
--   Support multiple predicates for refined types
--   Support Scala 3
