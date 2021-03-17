@@ -1,4 +1,4 @@
-package metaval
+package brief
 
 import annotations.Validation
 import cats.data.{Validated, NonEmptyChain}
@@ -84,7 +84,7 @@ class ValidationMacroSpec extends munit.FunSuite {
     assertEquals(Test.create(1, 2), Validated.valid(Test(1, 2)))
     assertEquals(
       Test.create(1, -2),
-      Validated.invalidNec[String, Test]("Predicate failed: (-2 > 0).")
+      Validated.invalidNec[String, Test]("For field Test.ref: Predicate failed: (-2 > 0).")
     )
   }
 
