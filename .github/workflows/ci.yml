@@ -20,6 +20,8 @@ jobs:
             - uses: olafurpg/setup-scala@v10
               with:
                   java-version: ${{ matrix.java }}
+            - run: TEST="2.12" sbt ci-test
+              shell: bash
             - run: TEST="2.13" sbt ci-test
               shell: bash
     formatting:
