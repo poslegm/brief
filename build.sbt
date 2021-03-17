@@ -16,6 +16,22 @@ inThisBuild(
   )
 )
 
+def scala211 = "2.11.12"
+def scala212 = "2.12.13"
+def scala213 = "2.13.5"
+
+commands += Command.command("ci-test") { s =>
+  val scalaVersion = sys.env.get("TEST") match {
+    case Some("2.11") => scala211
+    case Some("2.12") => scala212
+    case _            => scala213
+  }
+  s"++$scalaVersion" ::
+    "test" ::
+    "publishLocal" ::
+    s
+}
+
 lazy val root = project
   .in(file("."))
   .settings(
