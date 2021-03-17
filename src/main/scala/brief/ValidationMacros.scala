@@ -52,7 +52,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
             ..${fields.map(fieldToConstructorArgument)}
           )
         """
-      val validation  = validateRefinedFields(fields)
+      val validation  = validateRefinedFields(fields, name)
       val body        =
         NonEmptyList
           .fromList(validation)
@@ -81,7 +81,10 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       }
 
     private[this] case class RefinedFieldValidator(validator: Tree, field: ValDef)
-    private[this] def validateRefinedFields(fields: List[ValDef]): List[RefinedFieldValidator] =
+    private[this] def validateRefinedFields(
+        fields: List[ValDef],
+        className: TypeName
+    ): List[RefinedFieldValidator] =
       fields.flatMap { field =>
         field.tpt match {
           case AppliedTypeTree(
@@ -91,7 +94,9 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
             val validator =
               q"""
                 (_root_.eu.timepit.refined.refineV[${predicate}](${field.name}) match {
-                  case Left(err) => _root_.cats.data.Validated.invalidNec(err)
+                  case Left(err) => _root_.cats.data.Validated.invalidNec(
+                    "For field " + ${className.toString} + "." + ${field.name.toString} + ": " + err
+                  )
                   case Right(res) => _root_.cats.data.Validated.valid(res)
                 })
               """
