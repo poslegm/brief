@@ -9,6 +9,7 @@ import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
 import eu.timepit.refined.boolean._
 import eu.timepit.refined.api.Validate
+import shapeless.{Witness => W}
 
 class ValidationMacroSpec extends munit.FunSuite {
   test("generate object") {
@@ -102,10 +103,10 @@ class ValidationMacroSpec extends munit.FunSuite {
   }
 
   test("validate multiple predicates") {
-    val x: Refined[String, IPv6 Or IPv4 And Not[EndsWith["1"]]] =
-      refineMV[IPv6 Or IPv4 And Not[EndsWith["1"]]]("0.0.0.0")
+    val x: Refined[String, IPv6 Or IPv4 And Not[EndsWith[W.`"1"`.T]]] =
+      refineMV[IPv6 Or IPv4 And Not[EndsWith[W.`"1"`.T]]]("0.0.0.0")
     @Validation
-    case class Test(a: Int, ref: Refined[String, IPv6 Or IPv4 And Not[EndsWith["1"]]])
+    case class Test(a: Int, ref: Refined[String, IPv6 Or IPv4 And Not[EndsWith[W.`"1"`.T]]])
     assertEquals(Test.create(1, "0.0.0.0"), Validated.valid(Test(1, x)))
     assertEquals(
       Test.create(1, "0.0.0.1"),
