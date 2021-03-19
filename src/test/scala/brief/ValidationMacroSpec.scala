@@ -8,6 +8,7 @@ import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
 import eu.timepit.refined.string._
 import eu.timepit.refined.boolean._
+import eu.timepit.refined.api.Validate
 
 class ValidationMacroSpec extends munit.FunSuite {
   test("generate object") {
@@ -113,4 +114,32 @@ class ValidationMacroSpec extends munit.FunSuite {
       )
     )
   }
+
+  test("work with custom predicate") {
+    import customtypes.custom._
+
+    @Validation
+    case class Test(a: Int, ref: Int Refined CustomPositive)
+    assertEquals(
+      Test.create(1, 2),
+      Validated.valid(Test(1, refineV(2).fold(e => throw new Exception(e), identity)))
+    )
+    assertEquals(
+      Test.create(1, -2),
+      Validated.invalidNec[String, Test]("For field Test.ref: Predicate failed: (-2 is positive).")
+    )
+  }
+
+  test("work with partial alias") {
+    type PaE = Positive And Even
+    @Validation case class Test(a: Int Refined PaE)
+    assertEquals(Test.create(2), Validated.valid(Test(2)))
+    assertEquals(
+      Test.create(-2),
+      Validated.invalidNec[String, Test](
+        "For field Test.a: Left predicate of ((-2 > 0) && (-2 % 2 == 0)) failed: Predicate failed: (-2 > 0)."
+      )
+    )
+  }
+
 }
