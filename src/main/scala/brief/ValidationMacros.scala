@@ -43,17 +43,18 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       }
 
     private[this] def create(clsDef: ClassDef): Tree = {
-      val name        = clsDef.name
-      val fields      = extractCaseClassFields(clsDef)
-      val arguments   = fields.map(fieldWithoriginalType)
-      val constructor =
+      val name         = clsDef.name
+      val fields       = extractCaseClassFields(clsDef)
+      val refinedMetas = fields.flatMap(findRefinedMeta).map(m => m.fieldName -> m).toMap
+      val arguments    = fields.map(fieldWithoriginalType(refinedMetas))
+      val constructor  =
         q"""
           new $name(
             ..${fields.map(fieldToConstructorArgument)}
           )
         """
-      val validation  = validateRefinedFields(fields, name)
-      val body        =
+      val validation   = fields.flatMap(validateRefinedFields(refinedMetas, name))
+      val body         =
         NonEmptyList
           .fromList(validation)
           .map(validatedConstructor(_, constructor))
@@ -72,39 +73,67 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         case field: ValDef if field.mods.hasFlag(Flag.CASEACCESSOR | Flag.PARAMACCESSOR) => field
       }
 
-    private[this] def fieldWithoriginalType(field: ValDef): Tree =
-      field.tpt match {
-        case AppliedTypeTree(Ident(TypeName("Refined")), Ident(original: TypeName) :: _) =>
-          q"${field.name}: ${original}"
-
-        case other => q"${field.name}: $other"
-      }
+    private[this] def fieldWithoriginalType(
+        refinedMetas: Map[TermName, RefinedMeta]
+    )(field: ValDef): Tree =
+      refinedMetas
+        .get(field.name)
+        .map(m => q"${field.name}: ${m.original}")
+        // for non-refined fields just use its type as is
+        .getOrElse(q"${field.name}: ${field.tpt}")
 
     private[this] case class RefinedFieldValidator(validator: Tree, field: ValDef)
     private[this] def validateRefinedFields(
-        fields: List[ValDef],
+        refinedMetas: Map[TermName, RefinedMeta],
         className: TypeName
-    ): List[RefinedFieldValidator] =
-      fields.flatMap { field =>
-        field.tpt match {
+    )(field: ValDef): Option[RefinedFieldValidator] =
+      refinedMetas.get(field.name).map { refinedMeta =>
+        val validator =
+          q"""
+            (_root_.eu.timepit.refined.refineV[${refinedMeta.predicate}](${field.name}) match {
+              case Left(err) => _root_.cats.data.Validated.invalidNec(
+                "For field " + ${className.toString} + "." + ${field.name.toString} + ": " + err
+              )
+              case Right(res) => _root_.cats.data.Validated.valid(res)
+            })
+          """
+        RefinedFieldValidator(validator, field)
+      }
+
+    /** x: Int Refined Positive Or Negative
+      * ^  ^ original  ^ predicate
+      * |- fieldName
+      */
+    private[this] case class RefinedMeta(
+        fieldName: TermName,
+        original: TypeName,
+        predicate: Tree
+    )
+
+    /** returns None for non-refined fields
+      */
+    private[this] def findRefinedMeta(field: ValDef): Option[RefinedMeta] = {
+
+      def go(tree: Tree): (Option[TypeName], Tree) =
+        tree match {
           case AppliedTypeTree(
                 Ident(TypeName("Refined")),
-                Ident(_) :: Ident(predicate: TypeName) :: Nil
+                Ident(original: TypeName) :: predicate :: Nil
               ) =>
-            val validator =
-              q"""
-                (_root_.eu.timepit.refined.refineV[${predicate}](${field.name}) match {
-                  case Left(err) => _root_.cats.data.Validated.invalidNec(
-                    "For field " + ${className.toString} + "." + ${field.name.toString} + ": " + err
-                  )
-                  case Right(res) => _root_.cats.data.Validated.valid(res)
-                })
-              """
-            Some(RefinedFieldValidator(validator, field))
+            Some(original) -> go(predicate)._2
 
-          case _ /* non-refined field */ => None
+          case AppliedTypeTree(Ident(name: TypeName), args) =>
+            val successors = args.map(go)
+            val original   = successors.collectFirst { case (Some(original), _) => original }
+            val predicates = successors.map(_._2)
+            original -> AppliedTypeTree(Ident(name), predicates)
+
+          case other                                        => None -> other
         }
-      }
+
+      val (original, predicates) = go(field.tpt)
+      original.map(o => RefinedMeta(field.name, o, predicates))
+    }
 
     private[this] def validatedConstructor(
         validators: NonEmptyList[RefinedFieldValidator],
