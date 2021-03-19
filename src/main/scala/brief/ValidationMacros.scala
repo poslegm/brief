@@ -126,13 +126,9 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
             val successors = args.map(go)
             val original   = successors.collectFirst { case (Some(original), _) => original }
             val predicates = successors.map(_._2)
-            original -> q"${name.toTermName}[..${predicates}]"
+            original -> AppliedTypeTree(Ident(name), predicates)
 
-          case Ident(name: TypeName)                        => None -> q"${name.toTermName}"
-
-          case _ =>
-            abort(s"Unsupported predicate type ${tree}; it's a bug in the brief library")
-          //case SingletonTypeTree(singleton)                 => None -> singleton
+          case other                                        => None -> other
         }
 
       val (original, predicates) = go(field.tpt)

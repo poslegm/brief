@@ -88,13 +88,29 @@ class ValidationMacroSpec extends munit.FunSuite {
     )
   }
 
-  test("validate multiple predicates") {
+  test("validate refined fields with complex type") {
     @Validation
-    case class Test(a: Int, ref: String Refined IPv6 Or IPv4)
-    assertEquals(Test.create(1, "0.0.0.0"), Validated.valid(Test(1, "0.0.0.0")))
+    case class Test(a: Int, ref: Int Refined Interval.Closed[0, 10])
+    assertEquals(Test.create(1, 2), Validated.valid(Test(1, 2)))
     assertEquals(
-      Test.create(1, "invalid ip"),
-      Validated.invalidNec[String, Test]("Predicate failed: (-2 > 0).")
+      Test.create(1, -2),
+      Validated.invalidNec[String, Test](
+        "For field Test.ref: Left predicate of (!(-2 < 0) && !(-2 > 10)) failed: Predicate (-2 < 0) did not fail."
+      )
+    )
+  }
+
+  test("validate multiple predicates") {
+    val x: Refined[String, IPv6 Or IPv4 And Not[EndsWith["1"]]] =
+      refineMV[IPv6 Or IPv4 And Not[EndsWith["1"]]]("0.0.0.0")
+    @Validation
+    case class Test(a: Int, ref: Refined[String, IPv6 Or IPv4 And Not[EndsWith["1"]]])
+    assertEquals(Test.create(1, "0.0.0.0"), Validated.valid(Test(1, x)))
+    assertEquals(
+      Test.create(1, "0.0.0.1"),
+      Validated.invalidNec[String, Test](
+        "For field Test.ref: Right predicate of ((0.0.0.1 is a valid IPv6 || 0.0.0.1 is a valid IPv4) && !\"0.0.0.1\".endsWith(\"1\")) failed: Predicate \"0.0.0.1\".endsWith(\"1\") did not fail."
+      )
     )
   }
 }
