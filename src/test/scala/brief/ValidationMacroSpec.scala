@@ -92,7 +92,7 @@ class ValidationMacroSpec extends munit.FunSuite {
 
   test("validate refined fields with complex type") {
     @Validation
-    case class Test(a: Int, ref: Int Refined Interval.Closed[0, 10])
+    case class Test(a: Int, ref: Int Refined Interval.Closed[W.`0`.T, W.`10`.T])
     assertEquals(Test.create(1, 2), Validated.valid(Test(1, 2)))
     assertEquals(
       Test.create(1, -2),
