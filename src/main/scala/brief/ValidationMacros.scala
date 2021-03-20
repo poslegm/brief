@@ -151,8 +151,13 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           val validatorsProduct = list.tail.foldLeft(q"${list.head.validator}") { (acc, v) =>
             q"_root_.brief.util.either.product($acc, ${v.validator})"
           }
+
+          val tupledArgs = list.tail.tail.foldLeft(
+            q"_root_.scala.Tuple2(${toPatMatArg(list.head.field)}, ${toPatMatArg(list.tail.head.field)})"
+          )((acc, v) => q"_root_.scala.Tuple2($acc, ${toPatMatArg(v.field)})")
+
           q"""
-            $validatorsProduct.map { (..${list.map(_.field)}) =>
+            $validatorsProduct.map { case (..$tupledArgs) =>
               ..$ctor
             }
           """
@@ -166,5 +171,6 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
 
+    private[this] def toPatMatArg(field: ValDef): Bind = Bind(field.name, Ident(termNames.WILDCARD))
   }
 }

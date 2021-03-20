@@ -149,4 +149,36 @@ class ValidationMacroSpec extends munit.FunSuite {
     )
   }
 
+  test("validate two refined fields") {
+    @Validation case class Test(a: Int Refined Positive, b: String Refined IPv4, c: String)
+    assertEquals(
+      Test.create(-1, "aaa", "random"),
+      Left(
+        refineNonEmptyList(
+          "For field Test.a: Predicate failed: (-1 > 0).",
+          "For field Test.b: Predicate failed: aaa is a valid IPv4."
+        )
+      )
+    )
+  }
+
+  test("validate many refined fiels") {
+    @Validation case class Test(
+        a: Int Refined Positive,
+        b: String Refined IPv4,
+        c: String,
+        d: Int Refined Negative
+    )
+
+    assertEquals(Test.create(1, "0.0.0.0", "random", -2), Right(Test(1, "0.0.0.0", "random", -2)))
+    assertEquals(
+      Test.create(-1, "aaa", "random", -2),
+      Left(
+        refineNonEmptyList(
+          "For field Test.a: Predicate failed: (-1 > 0).",
+          "For field Test.b: Predicate failed: aaa is a valid IPv4."
+        )
+      )
+    )
+  }
 }
