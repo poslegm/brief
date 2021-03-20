@@ -1,6 +1,8 @@
 package brief
 
-import cats.data.NonEmptyList
+import eu.timepit.refined.refineV
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 import scala.reflect.macros.whitebox
 
 private[brief] final class ValidationMacros(val c: whitebox.Context) {
@@ -55,8 +57,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         """
       val validation   = fields.flatMap(validateRefinedFields(refinedMetas, name))
       val body         =
-        NonEmptyList
-          .fromList(validation)
+        refineV[NonEmpty](validation).toOption
           .map(validatedConstructor(_, constructor))
           .getOrElse(defaultValidConstructor(constructor, name))
       q"""
@@ -136,11 +137,11 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
     }
 
     private[this] def validatedConstructor(
-        validators: NonEmptyList[RefinedFieldValidator],
+        validators: List[RefinedFieldValidator] Refined NonEmpty,
         ctor: Tree
     ): Tree =
-      validators match {
-        case NonEmptyList(head, Nil) =>
+      validators.value match {
+        case head :: Nil =>
           q"""
               ${head.validator}.map { ${head.field} =>
                 ..$ctor
