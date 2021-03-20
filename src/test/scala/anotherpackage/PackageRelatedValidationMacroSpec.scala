@@ -1,7 +1,7 @@
 package anotherpackage
 
-import cats.data.Validated
 import brief.annotations.Validation
+import brief.util.either._
 
 import eu.timepit.refined._
 import eu.timepit.refined.api.Refined
@@ -17,10 +17,10 @@ class PackageRelatedValidationMacroSpec extends munit.FunSuite {
   test("generate object for case class from any package") {
     @Validation
     case class Test(a: Int, ref: Int Refined Positive)
-    assertEquals(Test.create(1, 2), Validated.valid(Test(1, 2)))
+    assertEquals(Test.create(1, 2), Right(Test(1, 2)))
     assertEquals(
       Test.create(1, -2),
-      Validated.invalidNec[String, Test]("For field Test.ref: Predicate failed: (-2 > 0).")
+      Left(refineNonEmptyList("For field Test.ref: Predicate failed: (-2 > 0)."))
     )
   }
 
@@ -29,7 +29,7 @@ class PackageRelatedValidationMacroSpec extends munit.FunSuite {
     case class Test(a: fields.fields2.NestedField, ref: Int Refined Positive)
     assertEquals(
       Test.create(fields.fields2.NestedField("a"), 2),
-      Validated.valid(Test(fields.fields2.NestedField("a"), 2))
+      Right(Test(fields.fields2.NestedField("a"), 2))
     )
   }
 
@@ -39,7 +39,7 @@ class PackageRelatedValidationMacroSpec extends munit.FunSuite {
     case class Test(a: NestedField, ref: Int Refined Positive)
     assertEquals(
       Test.create(fields.fields2.NestedField("a"), 2),
-      Validated.valid(Test(fields.fields2.NestedField("a"), 2))
+      Right(Test(fields.fields2.NestedField("a"), 2))
     )
   }
 

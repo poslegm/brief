@@ -6,7 +6,6 @@ object Dependencies {
   private val munitVersion   = "0.7.22"
   private val circeVersion   = "0.13.0-M5"
 
-  lazy val cats            = "org.typelevel" %% "cats-core"                    % catsVersion
   lazy val refined         = "eu.timepit"    %% "refined"                      % refinedVersion
   lazy val munit           = "org.scalameta" %% "munit"                        % munitVersion % Test
   lazy val circeDerivation = "io.circe"      %% "circe-derivation-annotations" % circeVersion % Test

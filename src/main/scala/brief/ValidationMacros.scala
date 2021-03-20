@@ -1,6 +1,8 @@
 package brief
 
-import cats.data.NonEmptyList
+import eu.timepit.refined.refineV
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 import scala.reflect.macros.whitebox
 
 private[brief] final class ValidationMacros(val c: whitebox.Context) {
@@ -55,14 +57,13 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         """
       val validation   = fields.flatMap(validateRefinedFields(refinedMetas, name))
       val body         =
-        NonEmptyList
-          .fromList(validation)
+        refineV[NonEmpty](validation).toOption
           .map(validatedConstructor(_, constructor))
           .getOrElse(defaultValidConstructor(constructor, name))
       q"""
         def create(
           ..$arguments
-        ): _root_.cats.data.Validated[_root_.cats.data.NonEmptyChain[String], $name] = {
+        ): _root_.scala.Either[_root_.eu.timepit.refined.api.Refined[_root_.scala.List[String], _root_.eu.timepit.refined.collection.NonEmpty], $name] = {
           ..$body
         }
       """
@@ -90,12 +91,11 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       refinedMetas.get(field.name).map { refinedMeta =>
         val validator =
           q"""
-            (_root_.eu.timepit.refined.refineV[${refinedMeta.predicate}](${field.name}) match {
-              case Left(err) => _root_.cats.data.Validated.invalidNec(
+            _root_.brief.util.either.liftErrors {
+              _root_.eu.timepit.refined.refineV[${refinedMeta.predicate}](${field.name}).left.map { err =>
                 "For field " + ${className.toString} + "." + ${field.name.toString} + ": " + err
-              )
-              case Right(res) => _root_.cats.data.Validated.valid(res)
-            })
+              }
+            }
           """
         RefinedFieldValidator(validator, field)
       }
@@ -136,23 +136,28 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
     }
 
     private[this] def validatedConstructor(
-        validators: NonEmptyList[RefinedFieldValidator],
+        validators: List[RefinedFieldValidator] Refined NonEmpty,
         ctor: Tree
     ): Tree =
-      validators match {
-        case NonEmptyList(head, Nil) =>
+      validators.value match {
+        case head :: Nil =>
           q"""
-              ${head.validator}.map { ${head.field} =>
-                ..$ctor
-              }
-            """
+            ${head.validator}.map { ${head.field} =>
+              ..$ctor
+            }
+          """
 
         case list =>
+          val validatorsProduct = list.tail.foldLeft(q"${list.head.validator}") { (acc, v) =>
+            q"_root_.brief.util.either.product($acc, ${v.validator})"
+          }
+
+          val tupledArgs = list.tail.tail.foldLeft(
+            q"_root_.scala.Tuple2(${toPatMatArg(list.head.field)}, ${toPatMatArg(list.tail.head.field)})"
+          )((acc, v) => q"_root_.scala.Tuple2($acc, ${toPatMatArg(v.field)})")
+
           q"""
-            import _root_.cats.syntax.apply._
-            (
-              ..${list.map(_.validator).toList}
-            ).mapN { (..${list.map(_.field).toList}) =>
+            $validatorsProduct.map { case (..$tupledArgs) =>
               ..$ctor
             }
           """
@@ -160,11 +165,12 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
     private[this] def defaultValidConstructor(constructor: Tree, className: TypeName): Tree =
       q"""
-        _root_.cats.data.Validated.validNec[String, $className](..$constructor)
+        _root_.scala.Right(..$constructor)
       """
 
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
 
+    private[this] def toPatMatArg(field: ValDef): Bind = Bind(field.name, Ident(termNames.WILDCARD))
   }
 }

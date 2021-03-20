@@ -34,7 +34,7 @@ lazy val root = project
   .in(file("."))
   .settings(
     name := "brief",
-    libraryDependencies ++= Seq(cats, refined, munit, circeDerivation),
+    libraryDependencies ++= Seq(refined, munit, circeDerivation),
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 13)) => Seq.empty
