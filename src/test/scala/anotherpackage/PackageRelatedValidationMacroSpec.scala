@@ -13,6 +13,13 @@ package fields {
     case class NestedField(a: String)
   }
 }
+
+package errors {
+  package custom {
+    class CustomErr(errors: List[String]) extends Exception(s"errs is ${errors.mkString(",")}")
+  }
+}
+
 class PackageRelatedValidationMacroSpec extends munit.FunSuite {
   test("generate object for case class from any package") {
     @Validation
@@ -40,6 +47,17 @@ class PackageRelatedValidationMacroSpec extends munit.FunSuite {
     assertEquals(
       Test.create(fields.fields2.NestedField("a"), 2),
       Right(Test(fields.fields2.NestedField("a"), 2))
+    )
+  }
+
+  test("use custom exception from any package") {
+    import errors.custom.CustomErr
+
+    @Validation[CustomErr]
+    case class Test(ref: Int Refined Positive)
+    assertEquals(
+      Test.create(-1).left.map(_.getMessage),
+      Left("errs is For field Test.ref: Predicate failed: (-1 > 0).")
     )
   }
 
