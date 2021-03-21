@@ -10,6 +10,7 @@ import eu.timepit.refined.string._
 import eu.timepit.refined.boolean._
 import eu.timepit.refined.api.Validate
 import shapeless.{Witness => W}
+import scala.util.control.NoStackTrace
 
 class ValidationMacroSpec extends munit.FunSuite {
   test("generate object") {
@@ -178,6 +179,48 @@ class ValidationMacroSpec extends munit.FunSuite {
           "For field Test.a: Predicate failed: (-1 > 0).",
           "For field Test.b: Predicate failed: aaa is a valid IPv4."
         )
+      )
+    )
+  }
+
+  test("accept custom exception") {
+    final case class CustomException(msgs: List[String])
+        extends Exception(
+          s"validation errors on CustomTest creation: ${msgs.mkString("[", ", ", "]")}"
+        )
+        with NoStackTrace
+
+    @Validation[CustomException]
+    case class Test(
+        a: Int Refined Positive,
+        b: String Refined IPv4,
+        c: String
+    )
+    assertEquals(
+      Test.create(-1, "aaa", "random").left.map(_.getMessage),
+      Left(
+        "validation errors on CustomTest creation: [For field Test.a: Predicate failed: (-1 > 0)., For field Test.b: Predicate failed: aaa is a valid IPv4.]"
+      )
+    )
+  }
+
+  test("accept custom exception with non empty list") {
+    final case class CustomException(msgs: brief.util.refined.NEL[String])
+        extends Exception(
+          s"validation errors on CustomTest creation: ${msgs.mkString("[", ", ", "]")}"
+        )
+        with NoStackTrace
+
+    @Validation[CustomException]
+    case class Test(
+        a: Int Refined Positive,
+        b: String Refined IPv4,
+        c: String
+    )
+    assertEquals(
+      Test.create(-1, "aaa", "random").left.map(_.getMessage),
+      Left(
+        "validation errors on CustomTest creation: [For field Test.a: Predicate failed: (-1 > 0)., For field Test.b: Predicate failed: aaa is a valid IPv4.]"
       )
     )
   }

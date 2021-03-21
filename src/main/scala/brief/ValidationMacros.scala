@@ -44,27 +44,42 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           abort(s"@Validation macro can only be applied to case classes")
       }
 
+    private[this] def parseUserErrorType: Option[Tree] =
+      c.prefix.tree match {
+        case q"new $annotion[$exceptionType]" => Some(exceptionType)
+        case _                                => None
+      }
+
     private[this] def create(clsDef: ClassDef): Tree = {
-      val name         = clsDef.name
-      val fields       = extractCaseClassFields(clsDef)
-      val refinedMetas = fields.flatMap(findRefinedMeta).map(m => m.fieldName -> m).toMap
-      val arguments    = fields.map(fieldWithoriginalType(refinedMetas))
-      val constructor  =
+      val name          = clsDef.name
+      val fields        = extractCaseClassFields(clsDef)
+      val refinedMetas  = fields.flatMap(findRefinedMeta).map(m => m.fieldName -> m).toMap
+      val arguments     = fields.map(fieldWithoriginalType(refinedMetas))
+      val constructor   =
         q"""
           new $name(
             ..${fields.map(fieldToConstructorArgument)}
           )
         """
-      val validation   = fields.flatMap(validateRefinedFields(refinedMetas, name))
-      val body         =
+      val validation    = fields.flatMap(validateRefinedFields(refinedMetas, name))
+      val body          =
         refineV[NonEmpty](validation).toOption
           .map(validatedConstructor(_, constructor))
           .getOrElse(defaultValidConstructor(constructor, name))
+      val userErrorType = parseUserErrorType
+      val errorType     = userErrorType.getOrElse(
+        tq"""
+          _root_.eu.timepit.refined.api.Refined[
+            _root_.scala.List[_root_.scala.Predef.String],
+            _root_.eu.timepit.refined.collection.NonEmpty
+          ]
+        """
+      )
       q"""
         def create(
           ..$arguments
-        ): _root_.scala.Either[_root_.eu.timepit.refined.api.Refined[_root_.scala.List[String], _root_.eu.timepit.refined.collection.NonEmpty], $name] = {
-          ..$body
+        ): _root_.scala.Either[$errorType, $name] = {
+          ..${mapErrors(body, userErrorType)}
         }
       """
     }
@@ -167,6 +182,9 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       q"""
         _root_.scala.Right(..$constructor)
       """
+
+    private[this] def mapErrors(body: Tree, customException: Option[Tree]): Tree =
+      customException.fold(body)(e => q"$body.left.map(errors => new $e(errors))")
 
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
