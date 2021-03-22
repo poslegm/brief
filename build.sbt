@@ -2,15 +2,15 @@ import Dependencies._
 
 inThisBuild(
   List(
-    organization := "chugunkov.dev",
-    homepage := Some(url("https://github.com/macro-validated/")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    organization := "com.github.poslegm",
+    homepage := Some(url("https://github.com/brief/")),
+    licenses := List("MIT" -> url("http://opensource.org/licenses/MIT")),
     developers := List(
       Developer(
         "poslegm",
         "Mikhail Chugunkov",
         "poslegm@gmail.com",
-        url("https://chugunkov.dev")
+        url("https://github.com/poslegm")
       )
     )
   )
