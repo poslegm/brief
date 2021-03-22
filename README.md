@@ -1,5 +1,7 @@
 # brief
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.poslegm/brief_2.13/badge.svg?kill_cache=1)](https://search.maven.org/artifact/com.github.poslegm/brief_2.13/)
+
 The validations are useless if programmers ignore them. We need to reduce
 an amount of boilerplate to adopt a typesafe validations for mass usage.
 
