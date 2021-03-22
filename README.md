@@ -1,25 +1,36 @@
 # brief
 
-Validation things are useless while programmers ignore them. We need to reduce
-boilerplate to adopt typesafe validations to mass usage.
+The validations are useless if programmers ignore them. We need to reduce
+an amount of boilerplate to adopt a typesafe validations for mass usage.
 
-_breif_ is an automated constructor generation for case classes with refined
-fields. The purpose of this micro-library is reducing adoption cost of
-[refined](https://github.com/fthomas/refined) types.
+_breif_ is an automated constructor generator for the case classes with a
+refined fields. The purpose of this micro-library is to reduce an adoption
+cost of a [refined](https://github.com/fthomas/refined) types.
 
-It solves problems:
+It will help if:
 
 1. I want typesafe fields validation for case classes, but I don't want to
    write boilerplate to its validation manually;
-2. If something went wrong I don't want to "fail fast" on first invalid field.
-   I want to get all validation errors immediatly;
-3. I want to have failed field name in every error message.
+2. Something went wrong and I don't want to "fail fast" on the first
+   invalid field. I want to get all validation errors together;
+3. I want to have a failed field name in an every error message.
 
 ## Usage
 
+### sbt
+
+```scala
+libraryDependencies += "com.github.poslegm" %% "brief" % "0.0.1-RC1-M1"
+
+// for Scala 2.13
+scalacOptions += "-Ymacro-annotations"
+// for Scala 2.12
+libraryDependencies += compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+```
+
 Public API of _brief_ consists of the only one macro annotation `@Validation`!
-It creates constructor for case class with refined fields and accumulate all
-validation errors to `List[String]`.
+It creates constructor for the case class with refined fields and accumulates
+all validation errors to `List[String]`.
 
 ### Example
 
@@ -72,13 +83,16 @@ Call.create("+71234567890", "+71112223344") // Right(Call(...))
 
 ## Custom errors
 
-It's possible to return from `create` method your own exception instead of raw
-`List[String]` with errors. Just define your error datatype with contract:
+It's possible to return your own exception from a `create` method instead
+of raw `List[String]` with errors. Just define your error datatype with a
+contract:
 
 1. It should be a `class` or a `case class`
 2. It should receive `List[String]` or `List[String] Refined NonEmpty` to
-   constructor
-   And pass it to annotation type parameter as `@Validation[CustomError]`.
+   the constructor
+
+And then pass it to the annotation type parameter as
+`@Validation[CustomError]`.
 
 ### Example
 
@@ -99,7 +113,7 @@ Call.create("+71234567890", "+71112") // Left(CallValidationError(...))
 
 ### Generic case classes
 
-`case class` with type parameters will not compile. Feel free to
+`case class` with a type parameters will not compile. Feel free to
 [fix](https://github.com/poslegm/brief/issues/8) it!
 
 ```scala
@@ -108,7 +122,7 @@ Call.create("+71234567890", "+71112") // Left(CallValidationError(...))
 
 ### Type aliases
 
-There are constraints about type aliases support. Feel free to
+There are constraints for type aliases. Feel free to
 [fix](https://github.com/poslegm/brief/issues/14) it!
 
 ```scala
