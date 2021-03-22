@@ -3,7 +3,7 @@ import Dependencies._
 inThisBuild(
   List(
     organization := "com.github.poslegm",
-    homepage := Some(url("https://github.com/brief/")),
+    homepage := Some(url("https://github.com/poslegm/brief/")),
     licenses := List("MIT" -> url("http://opensource.org/licenses/MIT")),
     developers := List(
       Developer(
