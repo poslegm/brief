@@ -9,6 +9,9 @@ _breif_ is an automated constructor generator for the case classes with a
 refined fields. The purpose of this micro-library is to reduce an adoption
 cost of a [refined](https://github.com/fthomas/refined) types.
 
+_brief_ is just a wrapper around powerful
+[Refined](https://github.com/fthomas/refined) library by Frank S. Thomas.
+
 It will help if:
 
 1. I want typesafe fields validation for case classes, but I don't want to
