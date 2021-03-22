@@ -9,7 +9,7 @@ import scala.language.experimental.macros
   *
   * Example:
   * {{{
-  * @Validation Test(a: Int, b: String Refined NonEmpty, c: Int Refined Positive)
+  * @Validation case class Test(a: Int, b: String Refined NonEmpty, c: Int Refined Positive)
   *
   * // MACRO GENERATED CODE START
   * object Test {
@@ -23,7 +23,7 @@ import scala.language.experimental.macros
   * }
   * // MACRO GENERATED CODE END
   *
-  * Test(1, "", -1) // <- List("For field Test.b: Predicate failed...", "For field Test.c: Predicate failed...")
+  * Test.create(1, "", -1) // <- List("For field Test.b: Predicate failed...", "For field Test.c: Predicate failed...")
   * }}}
   *
   *  Optionally accepts custom error type with contract:
@@ -41,9 +41,9 @@ import scala.language.experimental.macros
   *      with NoStackTrace
   *
   *  @Validation[TestValidationError]
-  *  Test(a: Int, b: String Refined NonEmpty, c: Int Refined Positive)
+  *  case class Test(a: Int, b: String Refined NonEmpty, c: Int Refined Positive)
   *
-  * Test(1, "", -1) // <- TestValidationError
+  * Test.create(1, "", -1) // <- TestValidationError
   *  }}}
   */
 @scala.annotation.compileTimeOnly("enable macro paradise to expand macro annotations")
