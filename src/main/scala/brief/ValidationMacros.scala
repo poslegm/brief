@@ -21,6 +21,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
     final def apply(): c.Tree =
       annottees match {
         case List(clsDef: ClassDef) if isCaseClass(clsDef) =>
+          // generate companion if there is no one
           q"""
             $clsDef
             object ${clsDef.name.toTermName} {
@@ -32,6 +33,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
               clsDef: ClassDef,
               q"object $objName extends { ..$objEarlyDefs } with ..$objParents { $objSelf => ..$objDefs }"
             ) if isCaseClass(clsDef) =>
+          // reuse existing companion
           q"""
             $clsDef
             object $objName extends { ..$objEarlyDefs } with ..$objParents { $objSelf =>
@@ -44,29 +46,51 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           abort(s"@Validation macro can only be applied to case classes")
       }
 
+    /** User arguments and type parameters should be parsed from annotation
+      *
+      * @returns `Some(E)` if annotation used as `@Validation[E] case class ...`
+      *          `None` if annotation used as `@Validation case class ...`
+      */
     private[this] def parseUserErrorType: Option[Tree] =
       c.prefix.tree match {
         case q"new $annotion[$exceptionType]" => Some(exceptionType)
         case _                                => None
       }
 
+    /** Produces `create` method for class companion
+      */
     private[this] def create(clsDef: ClassDef): Tree = {
+      // all examples for `@Validation[CustomError] case class Test(a: Int, b: String Refined NonEmpty)`
+      // name = Test
       val name          = clsDef.name
+      // fields = List(a, b)
       val fields        = extractCaseClassFields(clsDef)
+      // refinedMetas = Map(b -> RefinedMeta(b, String, NonEmpty))
       val refinedMetas  = fields.flatMap(findRefinedMeta).map(m => m.fieldName -> m).toMap
-      val arguments     = fields.map(fieldWithoriginalType(refinedMetas))
+      // arguments = List("a: Int", "b: String")
+      val arguments     = fields.map(fieldWithOriginalType(refinedMetas))
+      // constructor = new Test(a = a, b = b)
       val constructor   =
         q"""
           new $name(
             ..${fields.map(fieldToConstructorArgument)}
           )
         """
+      // validation = List(
+      //   RefinedFieldValidator(
+      //     validator = q"""liftErrors(refineV[NonEmpty](b)).left.map(e => "For field Test.b: " + e)""",
+      //     field = b))
       val validation    = fields.flatMap(validateRefinedFields(refinedMetas, name))
+      // body = liftErrors(refineV[NonEmpty](b)).left.map(e => "For field Test.b: " + e).map { b =>
+      //   new Test(a = a, b = b)
+      // }
       val body          =
         refineV[NonEmpty](validation).toOption
           .map(validatedConstructor(_, constructor))
           .getOrElse(defaultValidConstructor(constructor, name))
+      // userErrorType = Some(CustomError)
       val userErrorType = parseUserErrorType
+      // errorType = CustomError
       val errorType     = userErrorType.getOrElse(
         tq"""
           _root_.eu.timepit.refined.api.Refined[
@@ -75,6 +99,11 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           ]
         """
       )
+      // def create(b: String): Either[CustomError, Test] = {
+      //   liftErrors(refineV[NonEmpty](b)).left.map(e => "For field Test.b: " + e).map { b =>
+      //     new Test(a = a, b = b)
+      //   }.left.map(errors => new CustomError(errors))
+      // }
       q"""
         def create(
           ..$arguments
@@ -89,7 +118,14 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         case field: ValDef if field.mods.hasFlag(Flag.CASEACCESSOR | Flag.PARAMACCESSOR) => field
       }
 
-    private[this] def fieldWithoriginalType(
+    /** Generates arguments for `create` method. All fields should have its
+      * original type to be validated inside the method.
+      *
+      * @param refinedMetas meta information about refined fields
+      * @param field case class field to handle
+      * @return tree with argument: type for received field
+      */
+    private[this] def fieldWithOriginalType(
         refinedMetas: Map[TermName, RefinedMeta]
     )(field: ValDef): Tree =
       refinedMetas
@@ -99,6 +135,17 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         .getOrElse(q"${field.name}: ${field.tpt}")
 
     private[this] case class RefinedFieldValidator(validator: Tree, field: ValDef)
+
+    /** Generates validation code with error handling for refined fields.
+      * Adds class/field name to error string. Lifts error to
+      * non-empty list for accumulation.
+      *
+      * @param refinedMetas meta information about refined fields
+      * @param className name of validated case class
+      * @param field case class field to handle
+      * @returns `None` for non-refined fields
+      *          `Some[RefinedFieldValidator]` for refined fields
+      */
     private[this] def validateRefinedFields(
         refinedMetas: Map[TermName, RefinedMeta],
         className: TypeName
@@ -125,7 +172,12 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         predicate: Tree
     )
 
-    /** returns None for non-refined fields
+    /** Checks is field refined. For refined fields parses its type for
+      * original type and refined predicate.
+      *
+      *  @param field - case class field
+      *  @returns `None` for non-refined fields
+      *           `Some[RefinedMeta]` for refined fields
       */
     private[this] def findRefinedMeta(field: ValDef): Option[RefinedMeta] = {
 
@@ -150,12 +202,19 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       original.map(o => RefinedMeta(field.name, o, predicates))
     }
 
+    /** Maps validated fields to class constructor. Uses applicative semantics for `Either` composition.
+      *
+      * @param validators list of validation code snippets for refined fields
+      * @param ctor class constructor
+      * @returns tree with mapping from validated fields to constructor
+      */
     private[this] def validatedConstructor(
         validators: List[RefinedFieldValidator] Refined NonEmpty,
         ctor: Tree
     ): Tree =
       validators.value match {
         case head :: Nil =>
+          // one refined field can be mapped as is
           q"""
             ${head.validator}.map { ${head.field} =>
               ..$ctor
@@ -163,10 +222,12 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           """
 
         case list =>
+          // two or more validators should be composed with `product` to accumulate errors
           val validatorsProduct = list.tail.foldLeft(q"${list.head.validator}") { (acc, v) =>
             q"_root_.brief.util.either.product($acc, ${v.validator})"
           }
 
+          // pattern match nested tuples `case (((a, b), c), d) => `
           val tupledArgs = list.tail.tail.foldLeft(
             q"_root_.scala.Tuple2(${toPatMatArg(list.head.field)}, ${toPatMatArg(list.tail.head.field)})"
           )((acc, v) => q"_root_.scala.Tuple2($acc, ${toPatMatArg(v.field)})")
@@ -178,14 +239,27 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
           """
       }
 
+    /** Always valid constructor for classes without refined fields
+      */
     private[this] def defaultValidConstructor(constructor: Tree, className: TypeName): Tree =
       q"""
         _root_.scala.Right(..$constructor)
       """
 
+    /** Maps validation errors to custom exception if provided
+      *
+      * @param body validation code returning `Either[NEL[String], ClassName]`
+      * @param customException exception type. Should be a class with constructor receives `List[String]`
+      * @return tree with body wrapped to error mapping
+      */
     private[this] def mapErrors(body: Tree, customException: Option[Tree]): Tree =
       customException.fold(body)(e => q"$body.left.map(errors => new $e(errors))")
 
+    /** Generates field propagation to constructor as named arguments.
+      * i.e. `new Test(a = a, b = b)`
+      * @param field case class field
+      * @return tree with received field application
+      */
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
 
