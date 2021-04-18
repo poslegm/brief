@@ -58,7 +58,15 @@ lazy val root = project
     },
     scalacOptions ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((3, _)) => Seq("-Xcheck-macros", "-source:3.0-migration")
+        case Some((3, _)) =>
+          Seq(
+            "-explain",
+            "-indent",
+            "-new-syntax",
+            "-print-lines",
+            "-Xcheck-macros",
+            "-source:3.0-migration"
+          )
         case _            => Seq("-Ywarn-dead-code", "-Ywarn-numeric-widen")
       }
     }
