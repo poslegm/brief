@@ -41,16 +41,6 @@ class ValidationMacroSpec extends munit.FunSuite {
     assertEquals(Test.create(1, "a"), Right(Test(1, "a")))
   }
 
-  test("generate object for class with another macro annotation") {
-    import io.circe.derivation.annotations.JsonCodec
-    import io.circe.syntax._
-
-    @Validation @JsonCodec
-    case class Test(a: Int)
-    assertEquals(Test.create(1), Right(Test(1)))
-    assertEquals(Test(1).asJson.noSpaces, """{"a":1}""")
-  }
-
   test("fail on applying annotation to traits") {
     assertNoDiff(
       compileErrors("@Validation trait Ok"),
