@@ -23,7 +23,8 @@ def scala3   = "3.0.0-RC2"
 commands += Command.command("ci-test") { s =>
   val scalaVersion = sys.env.get("TEST") match {
     case Some("2.12") => scala212
-    case _            => scala213
+    case Some("2.13") => scala213
+    case _            => scala3
   }
   s"++$scalaVersion" ::
     "test" ::
@@ -43,7 +44,7 @@ lazy val root = project
       }
     },
     testFrameworks += new TestFramework("munit.Framework"),
-    scalaVersion := scala213,
+    scalaVersion := scala3,
     crossScalaVersions := List(scala213, scala212, scala3),
     scalacOptions ++= Seq(
       //"-Ymacro-debug-lite",
