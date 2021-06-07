@@ -48,8 +48,9 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
     /** User arguments and type parameters should be parsed from annotation
       *
-      * @returns `Some(E)` if annotation used as `@Validation[E] case class ...`
-      *          `None` if annotation used as `@Validation case class ...`
+      * @returns
+      *   `Some(E)` if annotation used as `@Validation[E] case class ...` `None` if annotation used
+      *   as `@Validation case class ...`
       */
     private[this] def parseUserErrorType: Option[Tree] =
       c.prefix.tree match {
@@ -118,12 +119,15 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         case field: ValDef if field.mods.hasFlag(Flag.CASEACCESSOR | Flag.PARAMACCESSOR) => field
       }
 
-    /** Generates arguments for `create` method. All fields should have its
-      * original type to be validated inside the method.
+    /** Generates arguments for `create` method. All fields should have its original type to be
+      * validated inside the method.
       *
-      * @param refinedMetas meta information about refined fields
-      * @param field case class field to handle
-      * @return tree with argument: type for received field
+      * @param refinedMetas
+      *   meta information about refined fields
+      * @param field
+      *   case class field to handle
+      * @return
+      *   tree with argument: type for received field
       */
     private[this] def fieldWithOriginalType(
         refinedMetas: Map[TermName, RefinedMeta]
@@ -136,15 +140,17 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
     private[this] case class RefinedFieldValidator(validator: Tree, field: ValDef)
 
-    /** Generates validation code with error handling for refined fields.
-      * Adds class/field name to error string. Lifts error to
-      * non-empty list for accumulation.
+    /** Generates validation code with error handling for refined fields. Adds class/field name to
+      * error string. Lifts error to non-empty list for accumulation.
       *
-      * @param refinedMetas meta information about refined fields
-      * @param className name of validated case class
-      * @param field case class field to handle
-      * @returns `None` for non-refined fields
-      *          `Some[RefinedFieldValidator]` for refined fields
+      * @param refinedMetas
+      *   meta information about refined fields
+      * @param className
+      *   name of validated case class
+      * @param field
+      *   case class field to handle
+      * @returns
+      *   `None` for non-refined fields `Some[RefinedFieldValidator]` for refined fields
       */
     private[this] def validateRefinedFields(
         refinedMetas: Map[TermName, RefinedMeta],
@@ -162,8 +168,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         RefinedFieldValidator(validator, field)
       }
 
-    /** x: Int Refined Positive Or Negative
-      * ^  ^ original  ^ predicate
+    /** x: Int Refined Positive Or Negative ^ ^ original ^ predicate
       * |- fieldName
       */
     private[this] case class RefinedMeta(
@@ -172,12 +177,13 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         predicate: Tree
     )
 
-    /** Checks is field refined. For refined fields parses its type for
-      * original type and refined predicate.
+    /** Checks is field refined. For refined fields parses its type for original type and refined
+      * predicate.
       *
-      *  @param field - case class field
-      *  @returns `None` for non-refined fields
-      *           `Some[RefinedMeta]` for refined fields
+      * @param field
+      *   - case class field
+      * @returns
+      *   `None` for non-refined fields `Some[RefinedMeta]` for refined fields
       */
     private[this] def findRefinedMeta(field: ValDef): Option[RefinedMeta] = {
 
@@ -202,11 +208,15 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       original.map(o => RefinedMeta(field.name, o, predicates))
     }
 
-    /** Maps validated fields to class constructor. Uses applicative semantics for `Either` composition.
+    /** Maps validated fields to class constructor. Uses applicative semantics for `Either`
+      * composition.
       *
-      * @param validators list of validation code snippets for refined fields
-      * @param ctor class constructor
-      * @returns tree with mapping from validated fields to constructor
+      * @param validators
+      *   list of validation code snippets for refined fields
+      * @param ctor
+      *   class constructor
+      * @returns
+      *   tree with mapping from validated fields to constructor
       */
     private[this] def validatedConstructor(
         validators: List[RefinedFieldValidator] Refined NonEmpty,
@@ -248,17 +258,22 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
     /** Maps validation errors to custom exception if provided
       *
-      * @param body validation code returning `Either[NEL[String], ClassName]`
-      * @param customException exception type. Should be a class with constructor receives `List[String]`
-      * @return tree with body wrapped to error mapping
+      * @param body
+      *   validation code returning `Either[NEL[String], ClassName]`
+      * @param customException
+      *   exception type. Should be a class with constructor receives `List[String]`
+      * @return
+      *   tree with body wrapped to error mapping
       */
     private[this] def mapErrors(body: Tree, customException: Option[Tree]): Tree =
       customException.fold(body)(e => q"$body.left.map(errors => new $e(errors))")
 
     /** Generates field propagation to constructor as named arguments.
       * i.e. `new Test(a = a, b = b)`
-      * @param field case class field
-      * @return tree with received field application
+      * @param field
+      *   case class field
+      * @return
+      *   tree with received field application
       */
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
