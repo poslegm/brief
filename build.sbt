@@ -3,9 +3,9 @@ import Dependencies._
 inThisBuild(
   List(
     organization := "com.github.poslegm",
-    homepage := Some(url("https://github.com/poslegm/brief/")),
-    licenses := List("MIT" -> url("http://opensource.org/licenses/MIT")),
-    developers := List(
+    homepage     := Some(url("https://github.com/poslegm/brief/")),
+    licenses     := List("MIT" -> url("http://opensource.org/licenses/MIT")),
+    developers   := List(
       Developer(
         "poslegm",
         "Mikhail Chugunkov",
@@ -33,7 +33,7 @@ commands += Command.command("ci-test") { s =>
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "brief",
+    name               := "brief",
     libraryDependencies ++= Seq(refined, munit, circeDerivation),
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
@@ -42,7 +42,7 @@ lazy val root = project
       }
     },
     testFrameworks += new TestFramework("munit.Framework"),
-    scalaVersion := scala213,
+    scalaVersion       := scala213,
     crossScalaVersions := List(scala213, scala212),
     scalacOptions ++= Seq(
       //"-Ymacro-debug-lite",
