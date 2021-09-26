@@ -12,7 +12,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
   final def macroApply(annottees: Seq[c.Tree]): MacroApply = new MacroApply(annottees)
 
-  private[this] def abort(msg: String): Nothing =
+  private[this] def abort(msg: String): Nothing            =
     c.abort(c.enclosingPosition, s"@Validation macro failure - $msg")
 
   private[this] def isCaseClass(clsDef: ClassDef): Boolean = clsDef.mods.hasFlag(Flag.CASE)
@@ -60,7 +60,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
 
     /** Produces `create` method for class companion
       */
-    private[this] def create(clsDef: ClassDef): Tree = {
+    private[this] def create(clsDef: ClassDef): Tree                         = {
       // all examples for `@Validation[CustomError] case class Test(a: Int, b: String Refined NonEmpty)`
       // name = Test
       val name          = clsDef.name
@@ -201,7 +201,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
             val predicates = successors.map(_._2)
             original -> AppliedTypeTree(Ident(name), predicates)
 
-          case other                                        => None -> other
+          case other => None -> other
         }
 
       val (original, predicates) = go(field.tpt)
@@ -278,6 +278,6 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
     private[this] def fieldToConstructorArgument(field: ValDef): Tree =
       q"${field.name} = ${field.name}"
 
-    private[this] def toPatMatArg(field: ValDef): Bind = Bind(field.name, Ident(termNames.WILDCARD))
+    private[this] def toPatMatArg(field: ValDef): Bind                = Bind(field.name, Ident(termNames.WILDCARD))
   }
 }
