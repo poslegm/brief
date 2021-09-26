@@ -18,7 +18,7 @@ trait either extends refined {
 
 object either extends either {
   object syntax {
-    final implicit class RichEither[E, A](private val raw: Either[E, A]) extends AnyVal {
+    final implicit class RichEither[E, A](private val raw: Either[E, A])            extends AnyVal {
       def liftErrors: Either[NEL[E], A] = either.liftErrors(raw)
     }
 
