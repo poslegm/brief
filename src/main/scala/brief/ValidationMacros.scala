@@ -201,7 +201,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
             val predicates = successors.map(_._2)
             original -> AppliedTypeTree(Ident(name), predicates)
 
-          case other                                        => None -> other
+          case other => None -> other
         }
 
       val (original, predicates) = go(field.tpt)
