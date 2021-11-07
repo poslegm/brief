@@ -17,7 +17,7 @@ inThisBuild(
 )
 
 def scala212 = "2.12.15"
-def scala213 = "2.13.6"
+def scala213 = "2.13.7"
 
 commands += Command.command("ci-test") { s =>
   val scalaVersion = sys.env.get("TEST") match {
