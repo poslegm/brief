@@ -45,7 +45,7 @@ lazy val root = project
     scalaVersion       := scala213,
     crossScalaVersions := List(scala213, scala212),
     scalacOptions ++= Seq(
-      //"-Ymacro-debug-lite",
+      // "-Ymacro-debug-lite",
       "-deprecation",
       "-unchecked",
       "-Ywarn-dead-code",
