@@ -169,7 +169,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
       }
 
     /** x: Int Refined Positive Or Negative ^ ^ original ^ predicate
-      * |- fieldName
+      * \|- fieldName
       */
     private[this] case class RefinedMeta(
         fieldName: TermName,
