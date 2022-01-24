@@ -168,7 +168,9 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         RefinedFieldValidator(validator, field)
       }
 
-    /** x: Int Refined Positive Or Negative ^ ^ original ^ predicate
+    // format: off
+    /** x: Int Refined Positive Or Negative
+      * ^ ^ original   ^ predicate
       * |- fieldName
       */
     private[this] case class RefinedMeta(
@@ -176,6 +178,7 @@ private[brief] final class ValidationMacros(val c: whitebox.Context) {
         original: TypeName,
         predicate: Tree
     )
+    // format: on
 
     /** Checks is field refined. For refined fields parses its type for original type and refined
       * predicate.
