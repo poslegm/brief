@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  private val refinedVersion = "0.9.28"
+  private val refinedVersion = "0.9.29"
   private val munitVersion   = "0.7.29"
   private val circeVersion   = "0.13.0-M5"
 
